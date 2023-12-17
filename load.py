@@ -1,4 +1,19 @@
-import libpysal
+import shutil
+import os
+import zipfile
+from libpysal.examples import load_example
 
-libpysal.examples.explain("baltim")
-libpysal.examples.explain("berlin")
+
+baltim = load_example("baltim")
+berlin = load_example("berlin")
+for file in baltim.get_file_list():
+    shutil.copy(file, "data/baltimore")
+
+for file in berlin.get_file_list():
+    shutil.copy(file, "data/berlin")
+
+for file in os.listdir("data/berlin"):
+    if file.endswith(".zip"):
+        with zipfile.ZipFile(os.path.join("data/berlin", file), 'r') as zip_ref:
+            zip_ref.extractall("data/berlin")
+        os.remove(os.path.join("data/berlin", file))
