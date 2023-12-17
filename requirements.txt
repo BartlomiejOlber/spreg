@@ -1,0 +1,2 @@
+libpysal==4.5.1
+geopandas==0.12.2
