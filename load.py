@@ -1,8 +1,8 @@
-import shutil
 import os
+import shutil
 import zipfile
-from libpysal.examples import load_example
 
+from libpysal.examples import load_example
 
 baltim = load_example("baltim")
 berlin = load_example("berlin")
