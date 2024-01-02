@@ -1,8 +1,13 @@
 import os
 import shutil
 import zipfile
+from pathlib import Path
 
 from libpysal.examples import load_example
+
+Path("data/baltimore").mkdir(parents=True, exist_ok=True)
+Path("data/berlin").mkdir(parents=True, exist_ok=True)
+Path("data/california").mkdir(parents=True, exist_ok=True)
 
 baltim = load_example("baltim")
 berlin = load_example("berlin")

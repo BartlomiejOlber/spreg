@@ -24,38 +24,50 @@ for(i in 3:3) {
   row <- datasets[i,]
   filename <- file.path("data", rownames(datasets)[i], row["file_name"])
   data <- vect(filename)
-  data_sf = sf::st_as_sf(data)
-  data_sf$id <- 1:nrow(data_sf)
-
-  sample <- sample.int(n = nrow(data_sf), size = floor(.8*nrow(data_sf)), replace = F)
-  train <- data_sf[sample, ]
-  test  <- data_sf[-sample, ]
+  data = sf::st_as_sf(data)
+  data$id <- 1:nrow(data)
+  
+  # plot(data)
+  # next
+  
+  sample <- sample.int(n = nrow(data), size = floor(.8*nrow(data)), replace = F)
+  train <- data[sample, ]
+  test  <- data[-sample, ]
   y = as.data.frame(test[,unlist(row["y_name"])])[,1]
 
-  if (st_geometry_type(data_sf[1,]) == "POINT"){
-    data.nb <- knn2nb(knearneigh(data_sf, k=3), row.names=data_sf$id)
+  if (st_geometry_type(data[1,]) == "POINT"){
+    data.nb <- knn2nb(knearneigh(data, k=3), row.names=data$id)
     train.nb <- knn2nb(knearneigh(train, k=3), row.names=train$id)
-  } else if (st_geometry_type(data_sf[1,]) == "POLYGON") {
+  } else if (st_geometry_type(data[1,]) == "POLYGON") {
     data.nb <- poly2nb(data)
     train.nb <- poly2nb(train)
   }
-  lw <- nb2listw(data.nb)
-  lw_train <- nb2listw(train.nb)
+  lw <- nb2listw(data.nb, zero.policy = T)
+  lw_train <- nb2listw(train.nb, zero.policy = T)
   
   formula_string = paste(row["y_name"], " ~ ", paste(unlist(row["x_names"]), collapse=" + "),sep = "")
   formula <- as.formula(formula_string)
 
+  start_time <- Sys.time()
   ols <- lm(formula, data=train)
+  train_time <- Sys.time()
   preds <- predict(ols, test)
-  print(paste(mean(y), sd(y), MAE(preds, y), MAE(preds, y)/mean(y), sep = "  "))
+  pred_time <- Sys.time()
+  print(paste(mean(y), sd(y), MAE(preds, y), MAE(preds, y)/mean(y), train_time-start_time, pred_time - train_time, sep = "  "))
 
-  lag_model <- lagsarlm(formula, data=train, listw=lw_train)
+  start_time <- Sys.time()
+  lag_model <- lagsarlm(formula, data=train, listw=lw_train, zero.policy = T)
+  train_time <- Sys.time()
   lag_model$call = ols$terms
   preds_lag <- predict(lag_model, newdata=test, listw=lw, pred.type="trend")
-  print(paste(mean(y), sd(y), MAE(preds_lag, y), MAE(preds_lag, y)/mean(y), sep = "  "))
+  pred_time <- Sys.time()
+  print(paste(mean(y), sd(y), MAE(preds_lag, y), MAE(preds_lag, y)/mean(y), train_time-start_time, pred_time - train_time, sep = "  "))
 
-  error_model <- errorsarlm(formula, data=train, lw_train, tol.solve=1.0e-30)
+  start_time <- Sys.time()
+  error_model <- errorsarlm(formula, data=train, lw_train, zero.policy = T)
+  train_time <- Sys.time()
   error_model$call = ols$terms
   preds_error <- predict(error_model, newdata=test, listw=lw)
-  print(paste(mean(y), sd(y), MAE(preds_error, y), MAE(preds_error, y)/mean(y), sep = "  "))
+  pred_time <- Sys.time()
+  print(paste(mean(y), sd(y), MAE(preds_error, y), MAE(preds_error, y)/mean(y), train_time-start_time, pred_time - train_time, sep = "  "))
 }
